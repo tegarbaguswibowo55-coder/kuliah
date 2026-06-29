@@ -320,7 +320,6 @@
             color: #f472b6 !important;
         }
 
-        /* Fix untuk button */
         button {
             cursor: pointer !important;
         }
@@ -527,7 +526,6 @@
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             
-            // Hapus toast lama
             const oldToast = container.querySelector('div');
             if (oldToast) oldToast.remove();
             
@@ -614,16 +612,11 @@
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
 
-            console.log('Email:', email);
-            console.log('Password length:', password.length);
-
             try {
                 const { data, error } = await sb.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
-
-                console.log('Login result:', data, error);
 
                 if (error) {
                     if (error.message.includes('Invalid login credentials')) {
@@ -714,46 +707,25 @@
         }
 
         // ==========================================
-        // 5. Cek Session - DIHAPUS UNTUK GITHUB
-        // ==========================================
-        // Fungsi ini dihapus agar tidak langsung redirect ke index
-        // karena di GitHub Pages, session tidak tersimpan
-
-        // ==========================================
-        // 6. Inisialisasi
+        // 5. Inisialisasi
         // ==========================================
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Login page loaded!');
             
-            // Hapus session check agar tidak redirect otomatis
-            // Biarkan user login manual
-            
-            // Enter key support
             document.getElementById('login-password').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     document.getElementById('login-form').dispatchEvent(new Event('submit'));
                 }
             });
-
-            // Debug: cek apakah tombol login ada
-            const loginBtn = document.getElementById('btn-login');
-            console.log('Login button found:', loginBtn);
-            
-            // Tambahkan event listener langsung
-            loginBtn.addEventListener('click', function(e) {
-                console.log('Login button clicked via addEventListener!');
-            });
         });
 
-        // Close modal on ESC key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeRegisterForm();
             }
         });
 
-        // Click outside modal to close
         document.getElementById('register-modal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeRegisterForm();
