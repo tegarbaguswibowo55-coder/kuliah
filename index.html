@@ -1,90 +1,79 @@
-<!-- ========================================== -->
-<!-- PROTEKSI LOGIN - Untuk GitHub Pages -->
-<!-- ========================================== -->
-<script>
-    (function() {
-        console.log('Checking authentication...');
-        
-        // Cek apakah ada session di localStorage
-        const sessionData = localStorage.getItem('sb-session');
-        
-        if (!sessionData) {
-            // Jika tidak ada session, redirect ke login
-            console.log('No session found, redirecting to login...');
+// ==========================================
+// PROTEKSI LOGIN - SEDERHANA
+// ==========================================
+(function() {
+    console.log('Checking authentication...');
+    
+    // Cek session di localStorage
+    const sessionData = localStorage.getItem('sb-session');
+    
+    if (!sessionData) {
+        console.log('No session found, redirecting to login...');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    try {
+        const session = JSON.parse(sessionData);
+        if (!session || !session.user) {
+            console.log('Invalid session, redirecting to login...');
             window.location.href = 'login.html';
             return;
         }
         
-        try {
-            const session = JSON.parse(sessionData);
-            if (!session || !session.user) {
-                console.log('Invalid session, redirecting to login...');
-                window.location.href = 'login.html';
-                return;
+        console.log('User logged in:', session.user.email);
+        
+        // Tampilkan nama user
+        const userName = session.user.user_metadata?.name || session.user.email || 'Mahasiswa';
+        
+        // Update navbar setelah halaman selesai loading
+        setTimeout(() => {
+            const userBtn = document.querySelector('.fa-user-circle')?.parentElement;
+            if (userBtn) {
+                userBtn.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+                            ${userName.charAt(0).toUpperCase()}
+                        </div>
+                        <span class="text-sm font-medium text-white/80 hidden md:inline">${userName}</span>
+                    </div>
+                `;
+                userBtn.style.cursor = 'pointer';
+                userBtn.onclick = function() {
+                    if (confirm('Apakah Anda yakin ingin keluar?')) {
+                        logout();
+                    }
+                };
             }
             
-            console.log('User logged in:', session.user.email);
-            
-            // Tampilkan nama user di navbar
-            const userName = session.user.user_metadata?.name || session.user.email || 'Mahasiswa';
-            
-            // Update navbar dengan nama user
-            setTimeout(() => {
-                const userBtn = document.querySelector('.fa-user-circle')?.parentElement;
-                if (userBtn) {
-                    userBtn.innerHTML = `
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
-                                ${userName.charAt(0).toUpperCase()}
-                            </div>
-                            <span class="text-sm font-medium text-white/80 hidden md:inline">${userName}</span>
-                        </div>
-                    `;
-                    userBtn.style.cursor = 'pointer';
+            // Tambahkan tombol logout
+            const navRight = document.querySelector('.flex.items-center.gap-4');
+            if (navRight) {
+                const existingLogout = navRight.querySelector('.logout-btn');
+                if (!existingLogout) {
+                    const logoutBtn = document.createElement('button');
+                    logoutBtn.className = 'logout-btn w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/20 transition-all flex items-center justify-center text-white/60 hover:text-red-400 border border-white/5';
+                    logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i>';
+                    logoutBtn.title = 'Keluar';
+                    logoutBtn.onclick = function() {
+                        if (confirm('Apakah Anda yakin ingin keluar?')) {
+                            logout();
+                        }
+                    };
+                    navRight.appendChild(logoutBtn);
                 }
-                
-                // Tambahkan tombol logout di navbar
-                const navRight = document.querySelector('.flex.items-center.gap-4');
-                if (navRight) {
-                    // Cek apakah sudah ada tombol logout
-                    const existingLogout = navRight.querySelector('.logout-btn');
-                    if (!existingLogout) {
-                        const logoutBtn = document.createElement('button');
-                        logoutBtn.className = 'logout-btn w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/20 transition-all flex items-center justify-center text-white/60 hover:text-red-400 border border-white/5';
-                        logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i>';
-                        logoutBtn.title = 'Keluar';
-                        logoutBtn.onclick = function() {
-                            if (confirm('Apakah Anda yakin ingin keluar?')) {
-                                logout();
-                            }
-                        };
-                        navRight.appendChild(logoutBtn);
-                    }
-                }
-            }, 500);
-            
-        } catch (error) {
-            console.error('Session parse error:', error);
-            window.location.href = 'login.html';
-        }
-    })();
-
-    // Fungsi logout
-    async function logout() {
-        const SUPABASE_URL = 'https://uqkbibbfyfroartqrdem.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_CWW6pPcL-E4nnPOHqk88FA_Rw5In8AP';
-        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
+        }, 500);
         
-        try {
-            await sb.auth.signOut();
-            localStorage.removeItem('sb-user');
-            localStorage.removeItem('sb-session');
-            window.location.href = 'login.html';
-        } catch (error) {
-            console.error('Logout error:', error);
-            localStorage.removeItem('sb-user');
-            localStorage.removeItem('sb-session');
-            window.location.href = 'login.html';
-        }
+    } catch (error) {
+        console.error('Session parse error:', error);
+        window.location.href = 'login.html';
     }
-</script>
+})();
+
+// Fungsi logout
+function logout() {
+    localStorage.removeItem('sb-user');
+    localStorage.removeItem('sb-session');
+    window.location.href = 'login.html';
+}
