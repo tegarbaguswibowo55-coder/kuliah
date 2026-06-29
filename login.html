@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - StudentHub</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a0f;
+            overflow: hidden;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .login-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(236, 72, 153, 0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(244, 63, 94, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, #0a0a0f 0%, #1a0a1a 50%, #0a0a1f 100%);
+        }
+
+        .sweet-element {
+            position: fixed;
+            z-index: -1;
+            opacity: 0.1;
+            pointer-events: none;
+            animation: floatSweet 20s ease-in-out infinite;
+            font-size: 40px;
+        }
+
+        @keyframes floatSweet {
+            0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+            25% { transform: translate(30px, -40px) rotate(5deg) scale(1.1); }
+            50% { transform: translate(-20px, 20px) rotate(-3deg) scale(0.9); }
+            75% { transform: translate(40px, 30px) rotate(4deg) scale(1.05); }
+        }
+
+        .glass-login {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(236, 72, 153, 0.05);
+            width: 100%;
+            max-width: 440px;
+            border-radius: 24px;
+            padding: 40px 32px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #ec4899, #a855f7, #ec4899);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientText 3s ease-in-out infinite;
+        }
+
+        @keyframes gradientText {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .form-input-login {
+            transition: all 0.4s ease;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 14px;
+            font-size: 15px;
+            outline: none;
+        }
+        
+        .form-input-login:focus {
+            border-color: rgba(236, 72, 153, 0.5);
+            box-shadow: 0 0 30px rgba(236, 72, 153, 0.1), inset 0 0 30px rgba(236, 72, 153, 0.05);
+            outline: none;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .form-input-login:hover {
+            border-color: rgba(236, 72, 153, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .form-input-login::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(168, 85, 247, 0.3));
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            color: white;
+            border-radius: 14px;
+            padding: 16px 32px;
+            font-weight: 700;
+            font-size: 16px;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            outline: none;
+        }
+        
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(168, 85, 247, 0.2));
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        
+        .btn-login:hover::before {
+            opacity: 1;
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 40px rgba(236, 72, 153, 0.3), 0 0 60px rgba(168, 85, 247, 0.1);
+            border-color: rgba(236, 72, 153, 0.5);
+        }
+        
+        .btn-login:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-login:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .toast-login {
+            animation: slideDown 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .sweet-float {
+            animation: floatSweet 15s ease-in-out infinite;
+        }
+
+        .sweet-float:nth-child(2) { animation-delay: -3s; }
+        .sweet-float:nth-child(3) { animation-delay: -6s; }
+        .sweet-float:nth-child(4) { animation-delay: -9s; }
+        .sweet-float:nth-child(5) { animation-delay: -12s; }
+
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.05);
+            border-top: 3px solid #ec4899;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: color 0.3s ease;
+            background: none;
+            border: none;
+            font-size: 18px;
+            padding: 8px;
+        }
+
+        .toggle-password:hover {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        /* Toast Container */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: 100%;
+            max-width: 500px;
+            padding: 0 20px;
+            pointer-events: none;
+        }
+
+        #toast-container > div {
+            pointer-events: auto;
+        }
+
+        /* Modal */
+        #register-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+        }
+
+        #register-modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(236, 72, 153, 0.2);
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 440px;
+            border-radius: 24px;
+            padding: 40px 32px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .glass-login {
+                padding: 32px 20px;
+            }
+            .modal-content {
+                padding: 32px 20px;
+            }
+            .sweet-element {
+                font-size: 30px !important;
+            }
+        }
+
+        /* Checkbox styling */
+        input[type="checkbox"] {
+            accent-color: #ec4899;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        /* Link styling */
+        a {
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        a:hover {
+            color: #f472b6 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background -->
+    <div class="login-bg"></div>
+
+    <!-- Floating Sweet Elements -->
+    <div class="sweet-element sweet-float" style="top: 10%; left: 5%;">🍰</div>
+    <div class="sweet-element sweet-float" style="bottom: 15%; right: 8%;">🎂</div>
+    <div class="sweet-element sweet-float" style="top: 40%; left: 3%;">🍩</div>
+    <div class="sweet-element sweet-float" style="top: 60%; right: 5%;">🧁</div>
+    <div class="sweet-element sweet-float" style="top: 20%; right: 15%;">🍭</div>
+    <div class="sweet-element sweet-float" style="bottom: 30%; left: 10%;">🍬</div>
+    <div class="sweet-element sweet-float" style="top: 80%; left: 20%;">🍫</div>
+    <div class="sweet-element sweet-float" style="top: 15%; right: 30%;">🌸</div>
+
+    <!-- Login Container -->
+    <div class="glass-login">
+        
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-pink-500/30 float-animation mx-auto mb-4">
+                <i class="fas fa-graduation-cap text-white text-3xl"></i>
+            </div>
+            <h1 class="text-3xl font-extrabold gradient-text">
+                StudentHub
+            </h1>
+            <p class="text-white/40 mt-1 text-sm">Masuk ke dashboard mahasiswa</p>
+        </div>
+
+        <!-- Form Login -->
+        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
+            <div>
+                <label class="block text-sm font-semibold text-white/60 mb-2">
+                    <i class="fas fa-envelope mr-2"></i> Email
+                </label>
+                <input 
+                    type="email" 
+                    id="login-email" 
+                    required 
+                    class="form-input-login" 
+                    placeholder="Masukkan email Anda"
+                    autocomplete="email"
+                    value="demo@studenthub.com"
+                >
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-white/60 mb-2">
+                    <i class="fas fa-lock mr-2"></i> Password
+                </label>
+                <div class="input-wrapper">
+                    <input 
+                        type="password" 
+                        id="login-password" 
+                        required 
+                        class="form-input-login pr-14" 
+                        placeholder="Masukkan password Anda"
+                        autocomplete="current-password"
+                        value="demo123456"
+                    >
+                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">
+                        <i class="fas fa-eye" id="password-icon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between text-sm">
+                <label class="flex items-center gap-2 cursor-pointer text-white/40 hover:text-white/60 transition">
+                    <input type="checkbox" id="remember-me">
+                    <span>Ingat saya</span>
+                </label>
+                <a href="#" class="text-pink-400 hover:text-pink-300 transition text-sm font-medium">
+                    Lupa password?
+                </a>
+            </div>
+
+            <button type="submit" id="btn-login" class="btn-login">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Masuk</span>
+            </button>
+        </form>
+
+        <!-- Register Link -->
+        <div class="mt-6 text-center">
+            <p class="text-white/40 text-sm">
+                Belum punya akun? 
+                <a href="#" onclick="showRegisterForm()" class="text-pink-400 hover:text-pink-300 transition font-semibold">
+                    Daftar sekarang
+                </a>
+            </p>
+        </div>
+
+        <!-- Divider -->
+        <div class="relative my-6">
+            <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-white/5"></div>
+            </div>
+            <div class="relative flex justify-center text-xs">
+                <span class="px-4 bg-transparent text-white/20">atau</span>
+            </div>
+        </div>
+
+        <!-- Demo Account -->
+        <div class="text-center">
+            <p class="text-white/30 text-xs mb-3">Gunakan akun demo untuk mencoba</p>
+            <button onclick="fillDemoAccount()" class="text-white/40 hover:text-white/70 transition text-sm font-medium bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl border border-white/5">
+                <i class="fas fa-user-astronaut mr-2"></i>
+                Isi Akun Demo
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-container"></div>
+
+    <!-- Register Modal -->
+    <div id="register-modal">
+        <div class="modal-content">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white">
+                    <i class="fas fa-user-plus text-pink-400 mr-2"></i>
+                    Daftar Akun
+                </h2>
+                <button onclick="closeRegisterForm()" class="text-white/40 hover:text-white transition text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="register-form" onsubmit="handleRegister(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-white/60 mb-2">
+                        <i class="fas fa-user mr-2"></i> Nama Lengkap
+                    </label>
+                    <input type="text" id="reg-name" required class="form-input-login" placeholder="Masukkan nama lengkap">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-white/60 mb-2">
+                        <i class="fas fa-envelope mr-2"></i> Email
+                    </label>
+                    <input type="email" id="reg-email" required class="form-input-login" placeholder="Masukkan email">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-white/60 mb-2">
+                        <i class="fas fa-lock mr-2"></i> Password
+                    </label>
+                    <div class="input-wrapper">
+                        <input type="password" id="reg-password" required class="form-input-login pr-14" placeholder="Minimal 6 karakter">
+                        <button type="button" class="toggle-password" onclick="toggleRegisterPassword()">
+                            <i class="fas fa-eye" id="reg-password-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-white/60 mb-2">
+                        <i class="fas fa-lock mr-2"></i> Konfirmasi Password
+                    </label>
+                    <input type="password" id="reg-confirm-password" required class="form-input-login" placeholder="Konfirmasi password">
+                </div>
+
+                <button type="submit" id="btn-register" class="btn-login">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Daftar</span>
+                </button>
+            </form>
+
+            <div class="mt-4 text-center">
+                <p class="text-white/40 text-sm">
+                    Sudah punya akun? 
+                    <a href="#" onclick="closeRegisterForm()" class="text-pink-400 hover:text-pink-300 transition font-semibold">
+                        Masuk di sini
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. Inisialisasi Supabase
+        // ==========================================
+        const SUPABASE_URL = 'https://uqkbibbfyfroartqrdem.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_CWW6pPcL-E4nnPOHqk88FA_Rw5In8AP';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ==========================================
+        // 2. Fungsi Utilitas
+        // ==========================================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            
+            // Hapus toast lama
+            const oldToast = container.querySelector('div');
+            if (oldToast) oldToast.remove();
+            
+            const toast = document.createElement('div');
+            
+            const bgColor = type === 'success' 
+                ? 'bg-gradient-to-r from-pink-500/20 to-purple-600/20 border-pink-500/30' 
+                : 'bg-gradient-to-r from-red-500/20 to-orange-500/20 border-red-500/30';
+            const icon = type === 'success' ? 'fa-check-circle text-pink-400' : 'fa-exclamation-circle text-red-400';
+            
+            toast.className = `${bgColor} text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 toast-login border border-white/10 backdrop-blur-2xl`;
+            toast.innerHTML = `
+                <i class="fas ${icon} text-xl"></i>
+                <span class="font-medium">${message}</span>
+                <button onclick="this.parentElement.remove()" class="ml-auto hover:bg-white/10 rounded-lg p-1 transition text-white/40 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.style.opacity = '0';
+                    toast.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => {
+                        if (toast.parentElement) toast.remove();
+                    }, 500);
+                }
+            }, 4000);
+        }
+
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('login-password');
+            const icon = document.getElementById('password-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        function toggleRegisterPassword() {
+            const passwordInput = document.getElementById('reg-password');
+            const icon = document.getElementById('reg-password-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        function showRegisterForm() {
+            document.getElementById('register-modal').classList.add('show');
+        }
+
+        function closeRegisterForm() {
+            document.getElementById('register-modal').classList.remove('show');
+        }
+
+        function fillDemoAccount() {
+            document.getElementById('login-email').value = 'demo@studenthub.com';
+            document.getElementById('login-password').value = 'demo123456';
+            showToast('✅ Akun demo telah diisi!', 'success');
+        }
+
+        // ==========================================
+        // 3. Fungsi Login
+        // ==========================================
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btn-login');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Memproses...';
+
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const { data, error } = await sb.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    if (error.message.includes('Invalid login credentials')) {
+                        showToast('❌ Email atau password salah!', 'error');
+                    } else {
+                        showToast('❌ ' + error.message, 'error');
+                    }
+                } else {
+                    showToast('✅ Login berhasil! Mengarahkan...', 'success');
+                    
+                    localStorage.setItem('sb-user', JSON.stringify(data.user));
+                    localStorage.setItem('sb-session', JSON.stringify(data.session));
+                    
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                }
+            } catch (error) {
+                showToast('❌ Terjadi kesalahan: ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+
+        // ==========================================
+        // 4. Fungsi Register
+        // ==========================================
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btn-register');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Memproses...';
+
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-confirm-password').value;
+
+            if (password.length < 6) {
+                showToast('❌ Password minimal 6 karakter!', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showToast('❌ Password dan konfirmasi password tidak sama!', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
+
+            try {
+                const { data, error } = await sb.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            name: name,
+                            full_name: name
+                        }
+                    }
+                });
+
+                if (error) {
+                    if (error.message.includes('User already registered')) {
+                        showToast('❌ Email sudah terdaftar!', 'error');
+                    } else {
+                        showToast('❌ ' + error.message, 'error');
+                    }
+                } else {
+                    showToast('✅ Pendaftaran berhasil! Silakan login.', 'success');
+                    
+                    closeRegisterForm();
+                    document.getElementById('register-form').reset();
+                    document.getElementById('login-email').value = email;
+                }
+            } catch (error) {
+                showToast('❌ Terjadi kesalahan: ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+
+        // ==========================================
+        // 5. Cek Session
+        // ==========================================
+        async function checkSession() {
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                
+                if (session) {
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.log('Session check error:', error);
+            }
+        }
+
+        // ==========================================
+        // 6. Inisialisasi
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSession();
+            
+            // Enter key support
+            document.getElementById('login-password').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('login-form').dispatchEvent(new Event('submit'));
+                }
+            });
+        });
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeRegisterForm();
+            }
+        });
+
+        // Click outside modal to close
+        document.getElementById('register-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRegisterForm();
+            }
+        });
+    </script>
+
+</body>
+</html>
