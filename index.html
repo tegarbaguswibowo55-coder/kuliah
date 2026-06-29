@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Mahasiswa - Jadwal & Keuangan</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- FullCalendar -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        .tab-btn { transition: all 0.3s ease; }
+        .tab-active { background-color: #3b82f6; color: white; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5); }
+        .tab-inactive { background-color: transparent; color: #6b7280; }
+        .tab-inactive:hover { background-color: #e5e7eb; color: #374151; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-animate { animation: slideIn 0.3s ease-out forwards; }
+
+        .fc .fc-toolbar-title { font-size: 1.25rem !important; font-weight: 600; color: #1f2937; }
+        .fc-theme-standard td, .fc-theme-standard th { border-color: #f3f4f6; }
+        .fc-col-header-cell { padding: 8px 0; background-color: #f9fafb; }
+        .fc-event { cursor: pointer; border: none !important; padding: 2px 4px; border-radius: 4px;}
+        .fc-timegrid-slot { height: 2.5em !important; }
+        
+        #calendar-full { height: 100%; min-height: 600px; }
+        .fc { height: 100% !important; }
+        
+        .color-option {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        .color-option:hover { transform: scale(1.1); }
+        .color-option.selected {
+            border-color: #1f2937;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #1f2937;
+        }
+        
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .custom-color-input {
+            width: 36px;
+            height: 36px;
+            padding: 2px;
+            border: 2px solid #d1d5db;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .custom-color-input:hover { transform: scale(1.1); }
+        .custom-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+        .custom-color-input::-webkit-color-swatch { border: none; border-radius: 50%; }
+        
+        .week-input {
+            width: 80px;
+            padding: 8px 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .week-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            ring: 2px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .week-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .week-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #d1d5db;
+            background: white;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .week-btn:hover {
+            background: #f3f4f6;
+            border-color: #3b82f6;
+        }
+        .week-btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="bg-slate-50 text-gray-800 min-h-screen">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm border-b px-6 py-4 sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                🎓 Kampus & Dompet
+            </h1>
+            <div class="text-sm text-gray-500 font-medium">Mahasiswa Dashboard</div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto mt-8 px-4 pb-12">
+        
+        <!-- Navigation Pills -->
+        <div class="flex flex-wrap gap-2 mb-8 bg-white p-2 rounded-xl shadow-sm border border-gray-100 w-fit">
+            <button id="btn-tab-dashboard" class="tab-btn tab-active px-5 py-2 rounded-lg font-medium text-sm" onclick="switchTab('dashboard')">
+                📊 Dashboard
+            </button>
+            <button id="btn-tab-jadwal" class="tab-btn tab-inactive px-5 py-2 rounded-lg font-medium text-sm" onclick="switchTab('jadwal')">
+                📅 Jadwal Kuliah
+            </button>
+            <button id="btn-tab-keuangan" class="tab-btn tab-inactive px-5 py-2 rounded-lg font-medium text-sm" onclick="switchTab('keuangan')">
+                💰 Keuangan
+            </button>
+        </div>
+
+        <!-- ================= SECTION: DASHBOARD ================= -->
+        <section id="sec-dashboard" class="block animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-4 mb-2">
+                        <div class="p-3 bg-green-100 text-green-600 rounded-lg">📈</div>
+                        <p class="text-sm font-medium text-gray-500">Total Pemasukan</p>
+                    </div>
+                    <h3 id="dash-pemasukan" class="text-2xl font-bold text-gray-800">Rp 0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-4 mb-2">
+                        <div class="p-3 bg-red-100 text-red-600 rounded-lg">📉</div>
+                        <p class="text-sm font-medium text-gray-500">Total Pengeluaran</p>
+                    </div>
+                    <h3 id="dash-pengeluaran" class="text-2xl font-bold text-gray-800">Rp 0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition-shadow relative overflow-hidden">
+                    <div class="absolute right-0 top-0 opacity-10 text-6xl transform translate-x-4 -translate-y-4">💰</div>
+                    <div class="flex items-center gap-4 mb-2">
+                        <div class="p-3 bg-blue-100 text-blue-600 rounded-lg">💼</div>
+                        <p class="text-sm font-medium text-gray-500">Sisa Saldo</p>
+                    </div>
+                    <h3 id="dash-saldo" class="text-2xl font-bold text-gray-800">Rp 0</h3>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border">
+                    <h2 class="font-semibold text-lg mb-4 text-gray-800">Statistik Keuangan Tahunan</h2>
+                    <div class="relative h-[400px] w-full">
+                        <canvas id="financeChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border">
+                    <h2 class="font-semibold text-lg mb-4 text-gray-800">Kalender Jadwal Rutin</h2>
+                    <div id="calendar-full" class="h-[400px]"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION: JADWAL KULIAH ================= -->
+        <section id="sec-jadwal" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border col-span-1 h-fit">
+                    <h2 class="font-semibold text-lg mb-4">Tambah Jadwal</h2>
+                    <form id="form-jadwal" onsubmit="handleAddJadwal(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Hari</label>
+                                <select id="j-hari" required class="w-full border-gray-300 border rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                                    <option value="Senin">Senin</option>
+                                    <option value="Selasa">Selasa</option>
+                                    <option value="Rabu">Rabu</option>
+                                    <option value="Kamis">Kamis</option>
+                                    <option value="Jumat">Jumat</option>
+                                    <option value="Sabtu">Sabtu</option>
+                                    <option value="Minggu">Minggu</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Mata Kuliah</label>
+                                <input type="text" id="j-matkul" required class="w-full border-gray-300 border rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="Cth: Algoritma">
+                            </div>
+                            <div class="flex gap-3">
+                                <div class="w-1/2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Mulai</label>
+                                    <input type="time" id="j-mulai" required class="w-full border-gray-300 border rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                                </div>
+                                <div class="w-1/2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Selesai</label>
+                                    <input type="time" id="j-selesai" required class="w-full border-gray-300 border rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Ruangan</label>
+                                <input type="text" id="j-ruang" required class="w-full border-gray-300 border rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="Cth: Lab Komputer A">
+                            </div>
+                            
+                            <!-- Fitur Warna Custom -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Warna Kalender</label>
+                                <div class="color-picker-wrapper">
+                                    <div class="color-option selected" style="background-color: #3b82f6" data-color="#3b82f6" onclick="selectColor(this)"></div>
+                                    <div class="color-option" style="background-color: #10b981" data-color="#10b981" onclick="selectColor(this)"></div>
+                                    <div class="color-option" style="background-color: #f59e0b" data-color="#f59e0b" onclick="selectColor(this)"></div>
+                                    <div class="color-option" style="background-color: #ef4444" data-color="#ef4444" onclick="selectColor(this)"></div>
+                                    <div class="color-option" style="background-color: #8b5cf6" data-color="#8b5cf6" onclick="selectColor(this)"></div>
+                                    <div class="color-option" style="background-color: #ec4899" data-color="#ec4899" onclick="selectColor(this)"></div>
+                                    <div class="color-option" style="background-color: #06b6d4" data-color="#06b6d4" onclick="selectColor(this)"></div>
+                                    <div class="color-option" style="background-color: #f97316" data-color="#f97316" onclick="selectColor(this)"></div>
+                                    <div class="relative">
+                                        <input type="color" id="j-warna-custom" class="custom-color-input" value="#3b82f6" 
+                                               onchange="handleCustomColor(this)">
+                                        <span class="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-gray-500 whitespace-nowrap">Custom</span>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="j-warna" value="#3b82f6">
+                            </div>
+
+                            <!-- Fitur Pengulangan -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Pengulangan Jadwal</label>
+                                <div class="flex items-center gap-4">
+                                    <label class="flex items-center gap-2">
+                                        <input type="radio" name="repeat-type" value="none" checked onchange="toggleRepeatMode(false)">
+                                        <span class="text-sm">Tidak berulang</span>
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="radio" name="repeat-type" value="repeat" onchange="toggleRepeatMode(true)">
+                                        <span class="text-sm">Berulang</span>
+                                    </label>
+                                </div>
+                                
+                                <div id="repeat-controls" class="mt-3 hidden">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-sm font-medium text-gray-700">Setiap</span>
+                                        <div class="week-controls">
+                                            <button type="button" class="week-btn" onclick="adjustWeeks(-1)">−</button>
+                                            <input type="number" id="j-pengulangan" class="week-input" value="1" min="1" max="52">
+                                            <button type="button" class="week-btn" onclick="adjustWeeks(1)">+</button>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-700">minggu sekali</span>
+                                    </div>
+                                    <div class="mt-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-600">
+                                            <input type="checkbox" id="j-hanya-minggu-ini" onchange="toggleWeekRange()">
+                                            Tentukan jumlah minggu pengulangan
+                                        </label>
+                                        <div id="week-range-control" class="mt-2 hidden">
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-sm font-medium text-gray-700">Durasi:</span>
+                                                <div class="week-controls">
+                                                    <button type="button" class="week-btn" onclick="adjustDuration(-1)">−</button>
+                                                    <input type="number" id="j-durasi" class="week-input" value="4" min="1" max="52">
+                                                    <button type="button" class="week-btn" onclick="adjustDuration(1)">+</button>
+                                                </div>
+                                                <span class="text-sm font-medium text-gray-700">minggu</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-blue-600 mt-2">💡 Jadwal akan dibuat otomatis dengan interval yang dipilih</p>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="btn-submit-jadwal" class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 font-medium transition shadow-md hover:shadow-lg">
+                                Simpan Jadwal
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Daftar Jadwal -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border col-span-1 lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="font-semibold text-lg">Daftar Jadwal Anda</h2>
+                        <button onclick="loadJadwal()" class="text-sm text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg transition">Refresh</button>
+                    </div>
+                    
+                    <div id="jadwal-loading" class="text-center text-gray-500 py-10 animate-pulse">Memuat jadwal...</div>
+                    <div id="jadwal-empty" class="hidden text-center text-gray-500 py-10 bg-gray-50 rounded-xl border border-dashed">Belum ada jadwal kuliah yang ditambahkan.</div>
+                    
+                    <div id="jadwal-list" class="space-y-6 hidden"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION: KEUANGAN ================= -->
+        <section id="sec-keuangan" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border col-span-1 h-fit">
+                    <h2 class="font-semibold text-lg mb-4">Catat Transaksi</h2>
+                    <form id="form-keuangan" onsubmit="handleAddKeuangan(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Transaksi</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="relative flex items-center justify-center p-3 border rounded-xl cursor-pointer hover:bg-green-50 transition peer-checked:bg-green-100 peer-checked:border-green-500">
+                                        <input type="radio" name="k-tipe" value="pemasukan" class="sr-only peer" checked>
+                                        <span class="font-medium text-green-700">Pemasukan</span>
+                                    </label>
+                                    <label class="relative flex items-center justify-center p-3 border rounded-xl cursor-pointer hover:bg-red-50 transition peer-checked:bg-red-100 peer-checked:border-red-500">
+                                        <input type="radio" name="k-tipe" value="pengeluaran" class="sr-only peer">
+                                        <span class="font-medium text-red-700">Pengeluaran</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp)</label>
+                                <input type="number" id="k-jumlah" required min="0" class="w-full border-gray-300 border rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="Cth: 50000">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
+                                <input type="text" id="k-ket" required class="w-full border-gray-300 border rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="Cth: Beli Makan Siang">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                                <input type="date" id="k-tanggal" required class="w-full border-gray-300 border rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                            </div>
+                            <button type="submit" id="btn-submit-keuangan" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-3 font-medium transition shadow-md hover:shadow-lg">
+                                Simpan Transaksi
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border col-span-1 lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="font-semibold text-lg">Riwayat Transaksi</h2>
+                        <button onclick="loadKeuangan()" class="text-sm text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded-lg transition">Refresh</button>
+                    </div>
+
+                    <div id="keuangan-loading" class="text-center text-gray-500 py-10 animate-pulse">Memuat transaksi...</div>
+                    <div id="keuangan-empty" class="hidden text-center text-gray-500 py-10 bg-gray-50 rounded-xl border border-dashed">Belum ada riwayat transaksi.</div>
+
+                    <div class="overflow-x-auto hidden rounded-xl border" id="keuangan-table-container">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-600 border-b">
+                                    <th class="p-4 font-semibold text-sm">Tanggal</th>
+                                    <th class="p-4 font-semibold text-sm">Keterangan</th>
+                                    <th class="p-4 font-semibold text-sm">Jumlah</th>
+                                    <th class="p-4 font-semibold text-sm text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="keuangan-list" class="divide-y text-sm bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 flex flex-col gap-2 z-50"></div>
+
+    <script>
+        // ==========================================
+        // 1. Inisialisasi Supabase
+        // ==========================================
+        const SUPABASE_URL = 'https://uqkbibbfyfroartqrdem.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_CWW6pPcL-E4nnPOHqk88FA_Rw5In8AP'; 
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let allJadwal = [];
+        let allKeuangan = [];
+        let financeChartInstance = null;
+        let calendarInstance = null;
+        let selectedColor = '#3b82f6';
+        
+        const urutanHari = { 'Senin': 1, 'Selasa': 2, 'Rabu': 3, 'Kamis': 4, 'Jumat': 5, 'Sabtu': 6, 'Minggu': 0 };
+
+        document.getElementById('k-tanggal').valueAsDate = new Date();
+
+        // ==========================================
+        // 2. Fungsi Utilitas
+        // ==========================================
+        function switchTab(tabId) {
+            const tabs = ['dashboard', 'jadwal', 'keuangan'];
+            
+            tabs.forEach(t => {
+                const btn = document.getElementById(`btn-tab-${t}`);
+                const sec = document.getElementById(`sec-${t}`);
+                
+                if (t === tabId) {
+                    btn.className = 'tab-btn tab-active px-5 py-2 rounded-lg font-medium text-sm';
+                    sec.classList.remove('hidden');
+                    sec.classList.add('block', 'animate-fade-in');
+                    
+                    if (t === 'dashboard') {
+                        setTimeout(() => {
+                            if (calendarInstance) calendarInstance.updateSize();
+                            if (financeChartInstance) financeChartInstance.resize();
+                        }, 50);
+                    }
+                } else {
+                    btn.className = 'tab-btn tab-inactive px-5 py-2 rounded-lg font-medium text-sm';
+                    sec.classList.remove('block', 'animate-fade-in');
+                    sec.classList.add('hidden');
+                }
+            });
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgColor = type === 'success' ? 'bg-green-600' : 'bg-red-600';
+            const icon = type === 'success' ? '✅' : '⚠️';
+            
+            toast.className = `${bgColor} text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 toast-animate`;
+            toast.innerHTML = `<span class="text-lg">${icon}</span> <span class="font-medium">${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function formatRupiah(angka) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+        }
+
+        function selectColor(element) {
+            document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedColor = element.dataset.color;
+            document.getElementById('j-warna').value = selectedColor;
+            document.getElementById('j-warna-custom').value = selectedColor;
+        }
+
+        function handleCustomColor(element) {
+            const color = element.value;
+            document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+            selectedColor = color;
+            document.getElementById('j-warna').value = color;
+        }
+
+        function toggleRepeatMode(isRepeat) {
+            const controls = document.getElementById('repeat-controls');
+            if (isRepeat) {
+                controls.classList.remove('hidden');
+            } else {
+                controls.classList.add('hidden');
+                document.getElementById('week-range-control').classList.add('hidden');
+                document.getElementById('j-hanya-minggu-ini').checked = false;
+            }
+        }
+
+        function adjustWeeks(delta) {
+            const input = document.getElementById('j-pengulangan');
+            let value = parseInt(input.value) || 1;
+            value = Math.max(1, Math.min(52, value + delta));
+            input.value = value;
+        }
+
+        function adjustDuration(delta) {
+            const input = document.getElementById('j-durasi');
+            let value = parseInt(input.value) || 4;
+            value = Math.max(1, Math.min(52, value + delta));
+            input.value = value;
+        }
+
+        function toggleWeekRange() {
+            const checked = document.getElementById('j-hanya-minggu-ini').checked;
+            const control = document.getElementById('week-range-control');
+            if (checked) {
+                control.classList.remove('hidden');
+            } else {
+                control.classList.add('hidden');
+            }
+        }
+
+        // ==========================================
+        // 3. Inisialisasi Chart & Calendar
+        // ==========================================
+        function initChart() {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            
+            financeChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+                    datasets: [
+                        {
+                            label: 'Pemasukan',
+                            data: Array(12).fill(0),
+                            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                            borderRadius: 6,
+                            borderSkipped: false
+                        },
+                        {
+                            label: 'Pengeluaran',
+                            data: Array(12).fill(0),
+                            backgroundColor: 'rgba(239, 68, 68, 0.85)',
+                            borderRadius: 6,
+                            borderSkipped: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
+                        tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(17, 24, 39, 0.9)' }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: '#f3f4f6', drawBorder: false },
+                            ticks: { callback: (value) => 'Rp ' + (value / 1000) + 'k' } 
+                        },
+                        x: { grid: { display: false, drawBorder: false } }
+                    },
+                    interaction: { mode: 'nearest', axis: 'x', intersect: false }
+                }
+            });
+        }
+
+        function initCalendar() {
+            const calendarEl = document.getElementById('calendar-full');
+            calendarInstance = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek'
+                },
+                buttonText: { today: 'Hari Ini', month: 'Bulan', week: 'Minggu' },
+                locale: 'id',
+                slotMinTime: '06:00:00',
+                slotMaxTime: '22:00:00',
+                allDaySlot: false,
+                height: '100%',
+                events: []
+            });
+            calendarInstance.render();
+        }
+
+        function updateDashboardVisuals() {
+            if (financeChartInstance) {
+                const pemasukanBulanan = Array(12).fill(0);
+                const pengeluaranBulanan = Array(12).fill(0);
+                const tahunIni = new Date().getFullYear();
+
+                allKeuangan.forEach(k => {
+                    const d = new Date(k.tanggal);
+                    if (d.getFullYear() === tahunIni) {
+                        const bulan = d.getMonth();
+                        if (k.tipe === 'pemasukan') pemasukanBulanan[bulan] += parseFloat(k.jumlah);
+                        if (k.tipe === 'pengeluaran') pengeluaranBulanan[bulan] += parseFloat(k.jumlah);
+                    }
+                });
+
+                financeChartInstance.data.datasets[0].data = pemasukanBulanan;
+                financeChartInstance.data.datasets[1].data = pengeluaranBulanan;
+                financeChartInstance.update();
+            }
+
+            if (calendarInstance) {
+                calendarInstance.removeAllEvents();
+                
+                const events = allJadwal.map(j => {
+                    const color = j.warna || '#3b82f6';
+                    
+                    return {
+                        title: `${j.mata_kuliah} (${j.ruangan})`,
+                        startTime: j.jam_mulai,
+                        endTime: j.jam_selesai,
+                        daysOfWeek: [urutanHari[j.hari]],
+                        backgroundColor: color,
+                        borderColor: color
+                    };
+                });
+
+                events.forEach(ev => calendarInstance.addEvent(ev));
+            }
+        }
+
+        // ==========================================
+        // 4. Logika Jadwal Kuliah (FIXED)
+        // ==========================================
+        async function loadJadwal() {
+            document.getElementById('jadwal-loading').classList.remove('hidden');
+            document.getElementById('jadwal-list').classList.add('hidden');
+            document.getElementById('jadwal-empty').classList.add('hidden');
+
+            const { data, error } = await sb.from('jadwal_kuliah').select('*');
+            
+            document.getElementById('jadwal-loading').classList.add('hidden');
+
+            if (error) {
+                showToast('Gagal memuat jadwal: ' + error.message, 'error');
+                return;
+            }
+
+            allJadwal = data;
+            renderJadwal();
+            updateDashboardVisuals();
+        }
+
+        function renderJadwal() {
+            const container = document.getElementById('jadwal-list');
+            container.innerHTML = '';
+
+            if (allJadwal.length === 0) {
+                document.getElementById('jadwal-empty').classList.remove('hidden');
+                container.classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('jadwal-empty').classList.add('hidden');
+            container.classList.remove('hidden');
+
+            const sortedJadwal = [...allJadwal].sort((a, b) => {
+                const hA = urutanHari[a.hari] === 0 ? 7 : urutanHari[a.hari];
+                const hB = urutanHari[b.hari] === 0 ? 7 : urutanHari[b.hari];
+                if (hA !== hB) return hA - hB;
+                return a.jam_mulai.localeCompare(b.jam_mulai);
+            });
+
+            const grouped = {};
+            sortedJadwal.forEach(item => {
+                if (!grouped[item.hari]) grouped[item.hari] = [];
+                grouped[item.hari].push(item);
+            });
+
+            for (const hari in grouped) {
+                const dayBlock = document.createElement('div');
+                dayBlock.className = 'bg-gray-50 rounded-xl p-4 border';
+                
+                dayBlock.innerHTML = `
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-2 h-6 bg-blue-500 rounded-full block"></span>
+                        <h3 class="font-bold text-gray-800">${hari}</h3>
+                    </div>
+                    <div class="space-y-3">
+                        ${grouped[hari].map(jadwal => {
+                            const jamMulai = jadwal.jam_mulai.substring(0, 5);
+                            const jamSelesai = jadwal.jam_selesai.substring(0, 5);
+                            const warna = jadwal.warna || '#3b82f6';
+                            const pengulangan = jadwal.pengulangan || 0;
+                            const teksPengulangan = pengulangan === 0 ? 'Tidak berulang' : `Setiap ${pengulangan} minggu`;
+                            
+                            return `
+                                <div class="flex justify-between items-center p-3 bg-white border rounded-xl hover:shadow-md transition-shadow group">
+                                    <div class="flex items-start gap-4">
+                                        <div class="w-3 h-full rounded-full" style="background-color: ${warna}; min-height: 40px;"></div>
+                                        <div>
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap">
+                                                    ${jamMulai} - ${jamSelesai}
+                                                </span>
+                                                ${pengulangan > 0 ? `<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">🔄 ${teksPengulangan}</span>` : ''}
+                                            </div>
+                                            <p class="font-bold text-gray-800 mt-1">${jadwal.mata_kuliah}</p>
+                                            <p class="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                                ${jadwal.ruangan}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button onclick="deleteJadwal('${jadwal.id}')" class="text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 p-2 rounded-lg transition opacity-0 group-hover:opacity-100" title="Hapus">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                container.appendChild(dayBlock);
+            }
+        }
+
+        async function handleAddJadwal(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-jadwal');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="animate-pulse">Menyimpan...</span>';
+
+            const isRepeat = document.querySelector('input[name="repeat-type"]:checked').value === 'repeat';
+            const warna = document.getElementById('j-warna').value;
+
+            const basePayload = {
+                hari: document.getElementById('j-hari').value,
+                mata_kuliah: document.getElementById('j-matkul').value,
+                jam_mulai: document.getElementById('j-mulai').value,
+                jam_selesai: document.getElementById('j-selesai').value,
+                ruangan: document.getElementById('j-ruang').value,
+                warna: warna,
+                pengulangan: 0
+            };
+
+            // Jika tidak berulang
+            if (!isRepeat) {
+                const { error } = await sb.from('jadwal_kuliah').insert([basePayload]);
+                if (error) {
+                    showToast('Gagal menambah: ' + error.message, 'error');
+                } else {
+                    showToast('Jadwal berhasil ditambahkan!');
+                    document.getElementById('form-jadwal').reset();
+                    // Reset radio button
+                    document.querySelector('input[name="repeat-type"][value="none"]').checked = true;
+                    document.getElementById('repeat-controls').classList.add('hidden');
+                    loadJadwal();
+                }
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
+
+            // Proses jadwal berulang
+            const pengulangan = parseInt(document.getElementById('j-pengulangan').value) || 1;
+            const tentukanDurasi = document.getElementById('j-hanya-minggu-ini').checked;
+            const durasi = tentukanDurasi ? parseInt(document.getElementById('j-durasi').value) || 4 : 5;
+
+            // Buat multiple jadwal dengan tanggal berbeda
+            const jadwalList = [];
+            const today = new Date();
+            const hariMap = {
+                'Senin': 1, 'Selasa': 2, 'Rabu': 3, 'Kamis': 4, 'Jumat': 5, 'Sabtu': 6, 'Minggu': 0
+            };
+            const targetDay = hariMap[basePayload.hari];
+            
+            // Cari hari target di minggu ini
+            let currentDate = new Date(today);
+            let currentDay = currentDate.getDay();
+            let daysToAdd = targetDay - currentDay;
+            if (daysToAdd < 0) daysToAdd += 7;
+            if (daysToAdd === 0 && currentDate.getHours() >= 12) daysToAdd = 7;
+            
+            // Buat jadwal untuk setiap minggu
+            for (let i = 0; i < durasi; i++) {
+                const weekOffset = i * pengulangan;
+                const newDate = new Date(currentDate);
+                newDate.setDate(currentDate.getDate() + daysToAdd + weekOffset * 7);
+                
+                const payload = {
+                    ...basePayload,
+                    tanggal: newDate.toISOString().split('T')[0],
+                    pengulangan: pengulangan
+                };
+                jadwalList.push(payload);
+            }
+
+            if (jadwalList.length === 0) {
+                showToast('Tidak ada jadwal yang dibuat', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
+
+            // Insert semua jadwal
+            const { data, error } = await sb.from('jadwal_kuliah').insert(jadwalList);
+
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+
+            if (error) {
+                showToast('Gagal menambah jadwal berulang: ' + error.message, 'error');
+                console.error('Error detail:', error);
+            } else {
+                showToast(`${jadwalList.length} jadwal berhasil ditambahkan! (Setiap ${pengulangan} minggu)`);
+                document.getElementById('form-jadwal').reset();
+                document.querySelector('input[name="repeat-type"][value="none"]').checked = true;
+                document.getElementById('repeat-controls').classList.add('hidden');
+                loadJadwal();
+            }
+        }
+
+        async function deleteJadwal(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) return;
+            
+            const { error } = await sb.from('jadwal_kuliah').delete().eq('id', id);
+            if(error) showToast('Gagal menghapus: ' + error.message, 'error');
+            else {
+                showToast('Jadwal berhasil dihapus');
+                loadJadwal();
+            }
+        }
+
+        // ==========================================
+        // 5. Logika Keuangan
+        // ==========================================
+        async function loadKeuangan() {
+            document.getElementById('keuangan-loading').classList.remove('hidden');
+            document.getElementById('keuangan-table-container').classList.add('hidden');
+            document.getElementById('keuangan-empty').classList.add('hidden');
+
+            const { data, error } = await sb.from('keuangan').select('*').order('tanggal', { ascending: false }).order('created_at', { ascending: false});
+            
+            document.getElementById('keuangan-loading').classList.add('hidden');
+
+            if (error) {
+                showToast('Gagal memuat keuangan: ' + error.message, 'error');
+                return;
+            }
+
+            allKeuangan = data;
+            renderKeuangan();
+            updateDashboardVisuals();
+        }
+
+        function renderKeuangan() {
+            const tbody = document.getElementById('keuangan-list');
+            tbody.innerHTML = '';
+
+            let totalPemasukan = 0;
+            let totalPengeluaran = 0;
+
+            allKeuangan.forEach(item => {
+                const j = parseFloat(item.jumlah);
+                if (item.tipe === 'pemasukan') totalPemasukan += j;
+                if (item.tipe === 'pengeluaran') totalPengeluaran += j;
+            });
+
+            const saldo = totalPemasukan - totalPengeluaran;
+            
+            document.getElementById('dash-pemasukan').textContent = formatRupiah(totalPemasukan);
+            document.getElementById('dash-pengeluaran').textContent = formatRupiah(totalPengeluaran);
+            
+            const elSaldo = document.getElementById('dash-saldo');
+            elSaldo.textContent = formatRupiah(saldo);
+            elSaldo.className = `text-2xl font-bold ${saldo < 0 ? 'text-red-600' : 'text-blue-600'}`;
+
+            if (allKeuangan.length === 0) {
+                document.getElementById('keuangan-empty').classList.remove('hidden');
+                document.getElementById('keuangan-table-container').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('keuangan-empty').classList.add('hidden');
+            document.getElementById('keuangan-table-container').classList.remove('hidden');
+
+            allKeuangan.forEach(trx => {
+                const tgl = new Date(trx.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                const isPemasukan = trx.tipe === 'pemasukan';
+                const jumlahColor = isPemasukan ? 'text-green-600' : 'text-red-600';
+                const sign = isPemasukan ? '+' : '-';
+                const badgeClass = isPemasukan ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 transition-colors group';
+                tr.innerHTML = `
+                    <td class="p-4 text-gray-500 whitespace-nowrap">${tgl}</td>
+                    <td class="p-4">
+                        <p class="font-medium text-gray-800">${trx.keterangan}</p>
+                        <span class="inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider ${badgeClass}">
+                            ${trx.tipe}
+                        </span>
+                    </td>
+                    <td class="p-4 font-bold ${jumlahColor} whitespace-nowrap">${sign} ${formatRupiah(trx.jumlah)}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="deleteKeuangan('${trx.id}')" class="text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 p-2 rounded-lg transition opacity-0 group-hover:opacity-100" title="Hapus Transaksi">
+                             <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function handleAddKeuangan(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-keuangan');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="animate-pulse">Menyimpan...</span>';
+
+            const tipeDipilih = document.querySelector('input[name="k-tipe"]:checked').value;
+
+            const payload = {
+                tipe: tipeDipilih,
+                jumlah: document.getElementById('k-jumlah').value,
+                keterangan: document.getElementById('k-ket').value,
+                tanggal: document.getElementById('k-tanggal').value
+            };
+
+            const { error } = await sb.from('keuangan').insert([payload]);
+
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+
+            if (error) {
+                showToast('Gagal menyimpan transaksi: ' + error.message, 'error');
+            } else {
+                showToast('Transaksi berhasil dicatat!');
+                document.getElementById('k-jumlah').value = '';
+                document.getElementById('k-ket').value = '';
+                loadKeuangan();
+            }
+        }
+
+        async function deleteKeuangan(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) return;
+            
+            const { error } = await sb.from('keuangan').delete().eq('id', id);
+            if(error) showToast('Gagal menghapus: ' + error.message, 'error');
+            else {
+                showToast('Transaksi berhasil dihapus');
+                loadKeuangan();
+            }
+        }
+
+        // ==========================================
+        // Init on load
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            initCalendar();
+            loadJadwal();
+            loadKeuangan();
+        });
+
+    </script>
+</body>
+</html>
