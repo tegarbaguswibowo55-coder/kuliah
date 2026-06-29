@@ -31,7 +31,6 @@
             align-items: center;
             justify-content: center;
             background: #0a0a0f;
-            overflow: hidden;
             margin: 0;
             padding: 20px;
         }
@@ -73,6 +72,8 @@
             max-width: 440px;
             border-radius: 24px;
             padding: 40px 32px;
+            position: relative;
+            z-index: 10;
         }
 
         .gradient-text {
@@ -123,7 +124,7 @@
             transition: all 0.4s ease;
             position: relative;
             overflow: hidden;
-            cursor: pointer;
+            cursor: pointer !important;
             color: white;
             border-radius: 14px;
             padding: 16px 32px;
@@ -135,6 +136,9 @@
             justify-content: center;
             gap: 10px;
             outline: none;
+            pointer-events: auto !important;
+            z-index: 20 !important;
+            position: relative;
         }
         
         .btn-login::before {
@@ -162,7 +166,7 @@
         
         .btn-login:disabled {
             opacity: 0.5;
-            cursor: not-allowed;
+            cursor: not-allowed !important;
             transform: none !important;
         }
 
@@ -220,12 +224,13 @@
             top: 50%;
             transform: translateY(-50%);
             color: rgba(255, 255, 255, 0.3);
-            cursor: pointer;
+            cursor: pointer !important;
             transition: color 0.3s ease;
             background: none;
             border: none;
             font-size: 18px;
             padding: 8px;
+            z-index: 5;
         }
 
         .toggle-password:hover {
@@ -236,7 +241,6 @@
             position: relative;
         }
 
-        /* Toast Container */
         #toast-container {
             position: fixed;
             top: 20px;
@@ -253,7 +257,6 @@
             pointer-events: auto;
         }
 
-        /* Modal */
         #register-modal {
             position: fixed;
             inset: 0;
@@ -267,7 +270,7 @@
         }
 
         #register-modal.show {
-            display: flex;
+            display: flex !important;
         }
 
         .modal-content {
@@ -288,7 +291,6 @@
             to { opacity: 1; transform: scale(1); }
         }
 
-        /* Responsive */
         @media (max-width: 480px) {
             .glass-login {
                 padding: 32px 20px;
@@ -301,22 +303,34 @@
             }
         }
 
-        /* Checkbox styling */
         input[type="checkbox"] {
             accent-color: #ec4899;
             width: 16px;
             height: 16px;
-            cursor: pointer;
+            cursor: pointer !important;
         }
 
-        /* Link styling */
         a {
             text-decoration: none;
             transition: color 0.3s ease;
+            cursor: pointer !important;
         }
 
         a:hover {
             color: #f472b6 !important;
+        }
+
+        /* Fix untuk button */
+        button {
+            cursor: pointer !important;
+        }
+        
+        form {
+            pointer-events: auto !important;
+        }
+        
+        form * {
+            pointer-events: auto !important;
         }
     </style>
 </head>
@@ -590,6 +604,7 @@
         // ==========================================
         async function handleLogin(e) {
             e.preventDefault();
+            console.log('Login button clicked!');
             
             const btn = document.getElementById('btn-login');
             const originalText = btn.innerHTML;
@@ -599,11 +614,16 @@
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
 
+            console.log('Email:', email);
+            console.log('Password length:', password.length);
+
             try {
                 const { data, error } = await sb.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
+
+                console.log('Login result:', data, error);
 
                 if (error) {
                     if (error.message.includes('Invalid login credentials')) {
@@ -622,6 +642,7 @@
                     }, 1500);
                 }
             } catch (error) {
+                console.error('Login error:', error);
                 showToast('❌ Terjadi kesalahan: ' + error.message, 'error');
             }
 
@@ -693,31 +714,35 @@
         }
 
         // ==========================================
-        // 5. Cek Session
+        // 5. Cek Session - DIHAPUS UNTUK GITHUB
         // ==========================================
-        async function checkSession() {
-            try {
-                const { data: { session } } = await sb.auth.getSession();
-                
-                if (session) {
-                    window.location.href = 'index.html';
-                }
-            } catch (error) {
-                console.log('Session check error:', error);
-            }
-        }
+        // Fungsi ini dihapus agar tidak langsung redirect ke index
+        // karena di GitHub Pages, session tidak tersimpan
 
         // ==========================================
         // 6. Inisialisasi
         // ==========================================
         document.addEventListener('DOMContentLoaded', function() {
-            checkSession();
+            console.log('Login page loaded!');
+            
+            // Hapus session check agar tidak redirect otomatis
+            // Biarkan user login manual
             
             // Enter key support
             document.getElementById('login-password').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
+                    e.preventDefault();
                     document.getElementById('login-form').dispatchEvent(new Event('submit'));
                 }
+            });
+
+            // Debug: cek apakah tombol login ada
+            const loginBtn = document.getElementById('btn-login');
+            console.log('Login button found:', loginBtn);
+            
+            // Tambahkan event listener langsung
+            loginBtn.addEventListener('click', function(e) {
+                console.log('Login button clicked via addEventListener!');
             });
         });
 
