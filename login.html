@@ -252,14 +252,14 @@
                 <label class="block text-sm font-semibold text-white/60 mb-2">
                     <i class="fas fa-envelope mr-2"></i> Email
                 </label>
-                <input type="email" id="email" required class="form-input" placeholder="Masukkan email Anda" value="demo@studenthub.com">
+                <input type="email" id="email" required class="form-input" placeholder="Masukkan email Anda">
             </div>
 
             <div>
                 <label class="block text-sm font-semibold text-white/60 mb-2">
                     <i class="fas fa-lock mr-2"></i> Password
                 </label>
-                <input type="password" id="password" required class="form-input" placeholder="Masukkan password Anda" value="demo123456">
+                <input type="password" id="password" required class="form-input" placeholder="Masukkan password Anda">
             </div>
 
             <button type="submit" id="loginBtn" class="btn-login">
@@ -287,9 +287,9 @@
         </div>
 
         <div class="text-center">
-            <button onclick="fillDemo()" class="text-white/40 hover:text-white/70 text-sm bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl border border-white/5">
+            <button onclick="fillDemo()" class="text-white/40 hover:text-white/70 text-sm bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl border border-white/5 transition-all">
                 <i class="fas fa-user-astronaut mr-2"></i>
-                Isi Akun Demo
+                Gunakan Akun Demo
             </button>
         </div>
     </div>
@@ -363,7 +363,7 @@
         }
 
         // ==========================================
-        // REGISTER
+        // REGISTER MODAL
         // ==========================================
         function showRegister() {
             document.getElementById('registerModal').classList.add('show');
@@ -373,6 +373,9 @@
             document.getElementById('registerModal').classList.remove('show');
         }
 
+        // ==========================================
+        // DEMO ACCOUNT
+        // ==========================================
         function fillDemo() {
             document.getElementById('email').value = 'demo@studenthub.com';
             document.getElementById('password').value = 'demo123456';
@@ -393,6 +396,13 @@
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
 
+            if (!email || !password) {
+                showToast('❌ Email dan password harus diisi!', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
+
             try {
                 const { data, error } = await sb.auth.signInWithPassword({
                     email: email,
@@ -400,7 +410,11 @@
                 });
 
                 if (error) {
-                    showToast('❌ ' + error.message, 'error');
+                    if (error.message.includes('Invalid login credentials')) {
+                        showToast('❌ Email atau password salah!', 'error');
+                    } else {
+                        showToast('❌ ' + error.message, 'error');
+                    }
                 } else {
                     showToast('✅ Login berhasil!', 'success');
                     localStorage.setItem('sb-session', JSON.stringify(data.session));
@@ -410,7 +424,7 @@
                     }, 1000);
                 }
             } catch (error) {
-                showToast('❌ Terjadi kesalahan', 'error');
+                showToast('❌ Terjadi kesalahan: ' + error.message, 'error');
             }
 
             btn.disabled = false;
@@ -432,6 +446,13 @@
             const email = document.getElementById('regEmail').value.trim();
             const password = document.getElementById('regPassword').value;
             const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            if (!name || !email || !password || !confirmPassword) {
+                showToast('❌ Semua field harus diisi!', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
 
             if (password.length < 6) {
                 showToast('❌ Password minimal 6 karakter!', 'error');
@@ -457,15 +478,20 @@
                 });
 
                 if (error) {
-                    showToast('❌ ' + error.message, 'error');
+                    if (error.message.includes('User already registered')) {
+                        showToast('❌ Email sudah terdaftar!', 'error');
+                    } else {
+                        showToast('❌ ' + error.message, 'error');
+                    }
                 } else {
                     showToast('✅ Pendaftaran berhasil! Silakan login.', 'success');
                     closeRegister();
                     document.getElementById('registerForm').reset();
                     document.getElementById('email').value = email;
+                    document.getElementById('password').value = '';
                 }
             } catch (error) {
-                showToast('❌ Terjadi kesalahan', 'error');
+                showToast('❌ Terjadi kesalahan: ' + error.message, 'error');
             }
 
             btn.disabled = false;
@@ -483,7 +509,9 @@
                     if (parsed && parsed.user) {
                         window.location.href = 'index.html';
                     }
-                } catch(e) {}
+                } catch(e) {
+                    console.log('Session check error:', e);
+                }
             }
         })();
 
@@ -491,6 +519,13 @@
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // Enter key support for register
+        document.getElementById('regConfirmPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('registerForm').dispatchEvent(new Event('submit'));
             }
         });
 
@@ -504,5 +539,6 @@
             if (e.target === this) closeRegister();
         });
     </script>
+
 </body>
 </html>
