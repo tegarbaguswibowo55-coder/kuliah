@@ -1,276 +1,29 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StudentHub - Dashboard</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #0a0a0f;
-            color: white;
-            margin: 0;
-            min-height: 100vh;
+<!-- ========================================== -->
+<!-- PROTEKSI LOGIN -->
+<!-- ========================================== -->
+<script>
+    (function() {
+        const sessionData = localStorage.getItem('sb-session');
+        if (!sessionData) {
+            window.location.href = 'login.html';
+            return;
         }
-        .glass {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 16px;
-        }
-        .gradient-text {
-            background: linear-gradient(135deg, #ec4899, #a855f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .card-hover {
-            transition: all 0.3s;
-        }
-        .card-hover:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 40px rgba(236,72,153,0.15);
-        }
-        .btn-logout {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.6);
-            padding: 8px 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .btn-logout:hover {
-            background: rgba(239,68,68,0.2);
-            border-color: rgba(239,68,68,0.3);
-            color: #ef4444;
-        }
-        .sweet-bg {
-            position: fixed;
-            inset: 0;
-            z-index: -1;
-            opacity: 0.05;
-            pointer-events: none;
-            font-size: 60px;
-        }
-    </style>
-</head>
-<body>
-
-    <!-- Background Sweet Elements -->
-    <div class="sweet-bg" style="top:10%;left:5%;">🍰</div>
-    <div class="sweet-bg" style="bottom:15%;right:8%;">🎂</div>
-    <div class="sweet-bg" style="top:40%;left:3%;">🍩</div>
-    <div class="sweet-bg" style="top:60%;right:5%;">🧁</div>
-    <div class="sweet-bg" style="top:20%;right:15%;">🍭</div>
-
-    <!-- ========================================== -->
-    <!-- PROTEKSI LOGIN -->
-    <!-- ========================================== -->
-    <script>
-        (function() {
-            // Cek session di localStorage
-            const sessionData = localStorage.getItem('sb-session');
-            
-            if (!sessionData) {
+        try {
+            const session = JSON.parse(sessionData);
+            if (!session || !session.user) {
                 window.location.href = 'login.html';
                 return;
             }
-            
-            try {
-                const session = JSON.parse(sessionData);
-                if (!session || !session.user) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-                
-                // Simpan user info
-                window.currentUser = session.user;
-                
-            } catch (error) {
-                console.error('Session error:', error);
-                window.location.href = 'login.html';
-            }
-        })();
-
-        // Fungsi Logout
-        function logout() {
-            if (confirm('Apakah Anda yakin ingin keluar?')) {
-                localStorage.removeItem('sb-user');
-                localStorage.removeItem('sb-session');
-                window.location.href = 'login.html';
-            }
+            window.currentUser = session.user;
+        } catch (error) {
+            window.location.href = 'login.html';
         }
-    </script>
+    })();
 
-    <!-- ========================================== -->
-    <!-- NAVBAR -->
-    <!-- ========================================== -->
-    <nav class="glass sticky top-0 z-50 border-b border-white/5 px-6 py-4">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
-                    <i class="fas fa-graduation-cap text-white"></i>
-                </div>
-                <h1 class="text-xl font-bold gradient-text">StudentHub</h1>
-            </div>
-            <div class="flex items-center gap-4">
-                <span class="text-sm text-white/40 hidden sm:inline">
-                    <i class="fas fa-user mr-1"></i>
-                    <span id="userName">Mahasiswa</span>
-                </span>
-                <button onclick="logout()" class="btn-logout">
-                    <i class="fas fa-sign-out-alt mr-1"></i>
-                    Keluar
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- ========================================== -->
-    <!-- MAIN CONTENT -->
-    <!-- ========================================== -->
-    <main class="max-w-7xl mx-auto px-4 py-8">
-        
-        <!-- Welcome -->
-        <div class="mb-8">
-            <h2 class="text-3xl font-bold text-white">
-                Selamat Datang, <span id="welcomeName" class="gradient-text">Mahasiswa</span>! 👋
-            </h2>
-            <p class="text-white/40 mt-1">Ini adalah dashboard mahasiswa Anda</p>
-        </div>
-
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="glass p-6 card-hover">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-white/40">Total Pemasukan</p>
-                        <h3 id="totalPemasukan" class="text-2xl font-bold text-white mt-2">Rp 0</h3>
-                    </div>
-                    <div class="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center text-pink-400">
-                        <i class="fas fa-arrow-up text-xl"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="glass p-6 card-hover">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-white/40">Total Pengeluaran</p>
-                        <h3 id="totalPengeluaran" class="text-2xl font-bold text-white mt-2">Rp 0</h3>
-                    </div>
-                    <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400">
-                        <i class="fas fa-arrow-down text-xl"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="glass p-6 card-hover relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/5 rounded-full blur-2xl"></div>
-                <div class="flex items-center justify-between relative">
-                    <div>
-                        <p class="text-sm text-white/40">Sisa Saldo</p>
-                        <h3 id="totalSaldo" class="text-2xl font-bold text-white mt-2">Rp 0</h3>
-                    </div>
-                    <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
-                        <i class="fas fa-wallet text-xl"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Info -->
-        <div class="glass p-8 text-center">
-            <div class="text-6xl mb-4">📚</div>
-            <h3 class="text-xl font-bold text-white mb-2">Dashboard Mahasiswa</h3>
-            <p class="text-white/40 max-w-md mx-auto">
-                Sistem ini terhubung dengan database Supabase. 
-                Anda dapat mengelola jadwal kuliah dan keuangan di sini.
-            </p>
-            <div class="mt-4 flex gap-3 justify-center flex-wrap">
-                <span class="px-3 py-1 bg-pink-500/10 text-pink-400 rounded-full text-xs border border-pink-500/20">
-                    <i class="fas fa-check-circle mr-1"></i> Terhubung
-                </span>
-                <span class="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full text-xs border border-purple-500/20">
-                    <i class="fas fa-user mr-1"></i> Login aktif
-                </span>
-            </div>
-        </div>
-
-    </main>
-
-    <script>
-        // ==========================================
-        // TAMPILKAN NAMA USER
-        // ==========================================
-        (function displayUser() {
-            try {
-                const sessionData = localStorage.getItem('sb-session');
-                if (sessionData) {
-                    const session = JSON.parse(sessionData);
-                    const user = session.user;
-                    const name = user.user_metadata?.name || user.email || 'Mahasiswa';
-                    
-                    document.getElementById('userName').textContent = name;
-                    document.getElementById('welcomeName').textContent = name;
-                }
-            } catch (error) {
-                console.log('Display user error:', error);
-            }
-        })();
-
-        // ==========================================
-        // LOAD DATA DARI SUPABASE
-        // ==========================================
-        const SUPABASE_URL = 'https://uqkbibbfyfroartqrdem.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_CWW6pPcL-E4nnPOHqk88FA_Rw5In8AP';
-        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        async function loadData() {
-            try {
-                // Load keuangan
-                const { data: keuangan, error: keuanganError } = await sb.from('keuangan').select('*');
-                
-                if (!keuanganError && keuangan) {
-                    let pemasukan = 0;
-                    let pengeluaran = 0;
-                    
-                    keuangan.forEach(item => {
-                        const jumlah = parseFloat(item.jumlah);
-                        if (item.tipe === 'pemasukan') pemasukan += jumlah;
-                        if (item.tipe === 'pengeluaran') pengeluaran += jumlah;
-                    });
-                    
-                    document.getElementById('totalPemasukan').textContent = formatRupiah(pemasukan);
-                    document.getElementById('totalPengeluaran').textContent = formatRupiah(pengeluaran);
-                    document.getElementById('totalSaldo').textContent = formatRupiah(pemasukan - pengeluaran);
-                }
-            } catch (error) {
-                console.log('Load data error:', error);
-            }
+    function logout() {
+        if (confirm('Apakah Anda yakin ingin keluar?')) {
+            localStorage.removeItem('sb-session');
+            window.location.href = 'login.html';
         }
-
-        function formatRupiah(angka) {
-            return new Intl.NumberFormat('id-ID', {
-                style: 'currency',
-                currency: 'IDR',
-                minimumFractionDigits: 0
-            }).format(angka);
-        }
-
-        // Load data setelah halaman siap
-        document.addEventListener('DOMContentLoaded', loadData);
-    </script>
-
-</body>
-</html>
+    }
+</script>
